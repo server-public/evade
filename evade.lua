@@ -1,8 +1,6 @@
 local Players           = game:GetService("Players")
 local Workspace         = game:GetService("Workspace")
 local CoreGui           = game:GetService("CoreGui")
-local UserInputService  = game:GetService("UserInputService")
-local RunService        = game:GetService("RunService")
 
 local LP = Players.LocalPlayer
 
@@ -12,7 +10,6 @@ end
 
 local State = { farm = false, candy = false, auto_revive = false }
 local SelectedPlayer = nil
-local PlayerButtons = {}
 
 local Theme = {
     bg = Color3.fromRGB(10, 10, 15), bg_secondary = Color3.fromRGB(20, 20, 30),
@@ -37,7 +34,7 @@ end
 local Gui = Instance.new("ScreenGui"); Gui.Name = "EvadePanel_v1"; Gui.ResetOnSpawn = false; Gui.IgnoreGuiInset = true; Gui.Parent = CoreGui
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 500, 0, 400); Main.Position = UDim2.new(0.5, -250, 0.5, -200)
+Main.Size = UDim2.new(0, 500, 0, 420); Main.Position = UDim2.new(0.5, -250, 0.5, -210)
 Main.BackgroundColor3 = Theme.bg; Main.BorderSizePixel = 0; Main.Active = true; Main.Draggable = true; Main.ClipsDescendants = true; Main.Parent = Gui
 corner(Main, 8); stroke(Main, Theme.stroke, 2)
 
@@ -91,7 +88,7 @@ corner(TargetInfo, 4)
 pad(TargetInfo, 10, 0, 0, 0)
 
 local PlayerContainer = Instance.new("Frame")
-PlayerContainer.Size = UDim2.new(1, 0, 0, 120)
+PlayerContainer.Size = UDim2.new(1, 0, 0, 150)
 PlayerContainer.BackgroundColor3 = Theme.bg
 PlayerContainer.BackgroundTransparency = 0.5
 PlayerContainer.Parent = tabTarget
@@ -110,17 +107,16 @@ local function refreshPlayerList()
     for _, child in ipairs(PlayerList:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
-    PlayerButtons = {}
 
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LP then
             local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, -10, 0, 28)
+            btn.Size = UDim2.new(1, -10, 0, 32)
             btn.BackgroundColor3 = Theme.bg_tertiary
-            btn.Text = "  [" .. p.DisplayName .. "] (@" .. p.Name .. ")"
-            btn.TextColor3 = Theme.text
+            btn.Text = "  " .. p.DisplayName .. " (@" .. p.Name .. ")"
+            btn.TextColor3 = (p == SelectedPlayer) and Theme.accent or Theme.text
             btn.Font = Font
-            btn.TextSize = 12
+            btn.TextSize = 13
             btn.TextXAlignment = Enum.TextXAlignment.Left
             btn.Parent = PlayerList
             corner(btn, 2)
@@ -129,32 +125,35 @@ local function refreshPlayerList()
                 SelectedPlayer = p
                 TargetInfo.Text = " Target: " .. p.Name
                 TargetInfo.TextColor3 = Theme.accent
+                refreshPlayerList() -- Refresh warna
             end)
-            
-            table.insert(PlayerButtons, btn)
         end
     end
 end
 
--- Refresh list tiap 3 detik
+-- Auto Refresh list tiap 2 detik
 task.spawn(function()
     while Gui.Parent do
         refreshPlayerList()
-        task.wait(3)
+        task.wait(2)
     end
 end)
 
--- Tombol aksi
 local function createActionBtn(parent, text, col, callback)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, 0, 0, 36); b.BackgroundColor3 = Theme.bg_secondary; b.Text = text; b.TextColor3 = col; b.Font = FontBold; b.TextSize = 13; b.Parent = parent; corner(b, 4); stroke(b, Theme.stroke, 1)
     b.MouseButton1Click:Connect(callback)
 end
 
+-- ==========================================
+-- AKSI HACK (DENGAN PENGAMAN)
+-- ==========================================
 createActionBtn(tabTarget, "[ KURUNG TARGET DI PENJARA ]", Color3.fromRGB(255, 150, 0), function()
-    if not SelectedPlayer or not SelectedPlayer.Character then return end
-    local hrp = SelectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+    if not SelectedPlayer then return end
+    local char = SelectedPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end -- Karakter belum spawn
+    
     local pos = hrp.Position
     local walls = {
         {Size = Vector3.new(12, 15, 1), Offset = Vector3.new(0, 0, -6)},
@@ -174,24 +173,33 @@ createActionBtn(tabTarget, "[ KURUNG TARGET DI PENJARA ]", Color3.fromRGB(255, 1
 end)
 
 createActionBtn(tabTarget, "[ JADIKAN TARGET TITAN ]", Color3.fromRGB(0, 255, 255), function()
-    if not SelectedPlayer or not SelectedPlayer.Character then return end
-    for _, part in ipairs(SelectedPlayer.Character:GetDescendants()) do
+    if not SelectedPlayer then return end
+    local char = SelectedPlayer.Character
+    if not char then return end
+    
+    for _, part in ipairs(char:GetDescendants()) do
         if part:IsA("BasePart") then
-            part.Size = part.Size * 10
+            -- Pengaman: Hanya perbesar 5x biar gak crash
+            part.Size = part.Size * 5 
             part.CustomPhysicalProperties = PhysicalProperties.new(0.01, 0.3, 0.5, 1, 1)
         end
     end
 end)
 
 createActionBtn(tabTarget, "[ JADIKAN TARGET KECIL ]", Color3.fromRGB(255, 100, 255), function()
-    if not SelectedPlayer or not SelectedPlayer.Character then return end
-    for _, part in ipairs(SelectedPlayer.Character:GetDescendants()) do
-        if part:IsA("BasePart") then part.Size = part.Size / 5 end
+    if not SelectedPlayer then return end
+    local char = SelectedPlayer.Character
+    if not char then return end
+    
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then 
+            part.Size = part.Size / 3 
+        end
     end
 end)
 
 -- ==========================================
--- TAB FARM (Lama)
+-- TAB FARM
 -- ==========================================
 local tabFarm = createTab("farm", "FARM")
 createActionBtn(tabFarm, "Toggle Farm Level", Theme.text, function() State.farm = not State.farm end)
