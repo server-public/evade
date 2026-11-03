@@ -126,7 +126,7 @@ Subtitle.Font = Font
 Subtitle.TextSize = 11
 Subtitle.TextColor3 = Theme.text_dim
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
-Subtitle.Text = "v2.0  •  final build"
+Subtitle.Text = "v2.0  •  hit and run edition"
 Subtitle.Parent = TitleBox
 
 local function iconButton(parent, xOffset, symbol, color, callback)
@@ -310,9 +310,8 @@ createToggle(tabMovement, "Noclip", false, function(v) State.noclip = v end)
 
 local tabFarm = createTab("farm", "FARM")
 createToggle(tabFarm, "Auto Candy (Wisps)", false, function(v) State.candy = v end)
-createToggle(tabFarm, "Farm Level (Y 1500)", false, function(v) State.farm = v end)
-createToggle(tabFarm, "Anti Nexbot Teleport", false, function(v) State.anti_tp = v end)
-createToggle(tabFarm, "Auto Revive (Insta-Res)", false, function(v) State.auto_revive = v end)
+createToggle(tabFarm, "Farm Level (Basecamp)", false, function(v) State.farm = v end)
+createToggle(tabFarm, "Auto Revive (Hit & Run)", false, function(v) State.auto_revive = v end)
 
 local tabConfig = createTab("config", "CONFIG")
 createToggle(tabConfig, "Auto Server Hop", true, function(v) State.auto_hop = v end)
@@ -325,54 +324,83 @@ _G.ev = _G.ev or {}
 _G.ev.State = State
 
 -- ==========================================
--- LOGIKA AUTO REVIVE (INSTA-RES)
+-- AUTO REVIVE (HIT AND RUN)
 -- ==========================================
-RunService.Heartbeat:Connect(function()
-    if not State.auto_revive then return end
-    local char = LP.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+local isReviving = false
 
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p == LP then continue end
-        local pChar = p.Character
-        if pChar then
-            local pHum = pChar:FindFirstChildOfClass("Humanoid")
+local function getSafeGroundSpot()
+    local spawn = Workspace:FindFirstChildOfClass("SpawnLocation")
+    if spawn then return spawn.Position + Vector3.new(0, 5, 0) end
+    return Vector3.new(0, 50, 0)
+end
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if not State.auto_revive or isReviving then continue end
+        local char = LP.Character
+        if not char then continue end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum or hum.Health <= 0 then continue end
+
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p == LP then continue end
+            local pChar = p.Character
             
-            if pHum and pHum.Health <= 0 then
-                local targetPart = pChar:FindFirstChild("HumanoidRootPart") or pChar:FindFirstChild("Head") or pChar:FindFirstChildWhichIsA("BasePart")
+            if pChar then
+                local pHum = pChar:FindFirstChildOfClass("Humanoid")
                 
-                if targetPart then
-                    hrp.CFrame = targetPart.CFrame * CFrame.new(0, 2, 0)
-                    hrp.AssemblyLinearVelocity = Vector3.zero
+                if pHum and pHum.Health <= 0 then
+                    local targetPart = pChar:FindFirstChild("HumanoidRootPart") or pChar:FindFirstChild("Head") or pChar:FindFirstChildWhichIsA("BasePart")
                     
-                    local prompt = targetPart:FindFirstChildWhichIsA("ProximityPrompt", true) 
-                                or pChar:FindFirstChildWhichIsA("ProximityPrompt", true)
-                    
-                    if not prompt then
-                        for _, obj in ipairs(Workspace:GetDescendants()) do
-                            if obj:IsA("ProximityPrompt") and obj.Parent:IsA("BasePart") then
-                                if (obj.Parent.Position - targetPart.Position).Magnitude < 10 then
-                                    prompt = obj
-                                    break
+                    if targetPart then
+                        isReviving = true
+                        
+                        local offset = CFrame.new(math.random(-2,2), 2, math.random(-2,2))
+                        hrp.CFrame = targetPart.CFrame * offset
+                        hrp.AssemblyLinearVelocity = Vector3.zero
+                        
+                        local prompt = targetPart:FindFirstChildWhichIsA("ProximityPrompt", true) 
+                                    or pChar:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        
+                        if not prompt then
+                            for _, obj in ipairs(Workspace:GetDescendants()) do
+                                if obj:IsA("ProximityPrompt") and obj.Parent:IsA("BasePart") then
+                                    if (obj.Parent.Position - targetPart.Position).Magnitude < 15 then
+                                        prompt = obj
+                                        break
+                                    end
                                 end
                             end
                         end
-                    end
 
-                    if prompt then
-                        if prompt.HoldDuration > 0 then
+                        if prompt then
                             pcall(function() fireproximityprompt(prompt) end)
-                            task.wait(prompt.HoldDuration)
+                            if prompt.HoldDuration > 0 then
+                                local holdEnd = tick() + prompt.HoldDuration
+                                while tick() < holdEnd do
+                                    hrp.CFrame = targetPart.CFrame * offset
+                                    task.wait(0.05)
+                                end
+                                pcall(function() fireproximityprompt(prompt) end)
+                            else
+                                task.wait(0.2)
+                            end
+                        else
+                            task.wait(0.3)
                         end
-                        pcall(function() fireproximityprompt(prompt) end)
-                    end
-                    
-                    if State.farm then
+                        
                         task.wait(0.2)
-                        hrp.CFrame = CFrame.new(Vector3.new(0, 1500, 0) + Vector3.new(0, 4, 0))
+                        if State.farm then
+                            hrp.CFrame = CFrame.new(Vector3.new(0, 1500, 0) + Vector3.new(0, 4, 0))
+                        else
+                            hrp.CFrame = CFrame.new(getSafeGroundSpot())
+                        end
                         hrp.AssemblyLinearVelocity = Vector3.zero
+                        
+                        task.wait(0.5)
+                        isReviving = false
+                        break
                     end
                 end
             end
