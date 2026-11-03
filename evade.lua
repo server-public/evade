@@ -126,7 +126,7 @@ Subtitle.Font = Font
 Subtitle.TextSize = 11
 Subtitle.TextColor3 = Theme.text_dim
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
-Subtitle.Text = "v2.0  •  missile edition"
+Subtitle.Text = "v3.5  •  ultimate edition"
 Subtitle.Parent = TitleBox
 
 local function iconButton(parent, xOffset, symbol, color, callback)
@@ -309,78 +309,16 @@ end)
 createToggle(tabMovement, "Noclip", false, function(v) State.noclip = v end)
 
 local tabFarm = createTab("farm", "FARM")
-createToggle(tabFarm, "Auto Candy (Wisps)", false, function(v) State.candy = v end)
+createToggle(tabFarm, "Auto Candy (Blink)", false, function(v) State.candy = v end)
 createToggle(tabFarm, "Farm Level (Basecamp)", false, function(v) State.farm = v end)
-createToggle(tabFarm, "Auto Revive", false, function(v) State.auto_revive = v end)
+createToggle(tabFarm, "Auto Revive (UI Click)", false, function(v) State.auto_revive = v end)
 
 local tabConfig = createTab("config", "CONFIG")
 createToggle(tabConfig, "Auto Server Hop", true, function(v) State.auto_hop = v end)
 
 Tabs["farm"].page.Visible = true
 Tabs["farm"].button.TextColor3 = Theme.text
-StatusText.Text = "loaded v2.0"
+StatusText.Text = "loaded v3.5"
 
 _G.ev = _G.ev or {}
 _G.ev.State = State
-
--- ==========================================
--- AUTO REVIVE (TELEPORT - PAKAI OFFSET)
--- ==========================================
-local isReviving = false
-
-task.spawn(function()
-    while task.wait(0.5) do
-        if not State.auto_revive or isReviving then continue end
-        local char = LP.Character
-        if not char then continue end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then continue end
-
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p == LP then continue end
-            local pChar = p.Character
-            
-            if pChar then
-                local pHum = pChar:FindFirstChildOfClass("Humanoid")
-                
-                if pHum and pHum.Health <= 0 then
-                    local targetPart = pChar:FindFirstChild("HumanoidRootPart") or pChar:FindFirstChildWhichIsA("BasePart")
-                    
-                    if targetPart then
-                        isReviving = true
-                        
-                        -- Teleport ke mayat
-                        hrp.CFrame = targetPart.CFrame * CFrame.new(0, 2, 0)
-                        hrp.AssemblyLinearVelocity = Vector3.zero
-                        task.wait(0.2) 
-                        
-                        -- Tembak RemoteEvent
-                        for _, d in ipairs(game:GetDescendants()) do
-                            if d:IsA("RemoteEvent") then
-                                pcall(function()
-                                    d:FireServer(p) 
-                                    d:FireServer(p.Name)
-                                    d:FireServer(targetPart)
-                                end)
-                            end
-                        end
-                        
-                        local prompt = targetPart:FindFirstChildWhichIsA("ProximityPrompt", true)
-                        if prompt then
-                            pcall(function() fireproximityprompt(prompt) end)
-                        end
-                        
-                        task.wait(1)
-                        
-                        if State.farm then
-                            hrp.CFrame = CFrame.new(Vector3.new(0, 1504, 0))
-                        end
-                        
-                        isReviving = false
-                        break
-                    end
-                end
-            end
-        end
-    end
-end)
