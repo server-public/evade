@@ -311,7 +311,7 @@ createToggle(tabMovement, "Noclip", false, function(v) State.noclip = v end)
 local tabFarm = createTab("farm", "FARM")
 createToggle(tabFarm, "Auto Candy (Wisps)", false, function(v) State.candy = v end)
 createToggle(tabFarm, "Farm Level (Basecamp)", false, function(v) State.farm = v end)
-createToggle(tabFarm, "Auto Revive (UI Click)", false, function(v) State.auto_revive = v end)
+createToggle(tabFarm, "Auto Revive (Bruteforce)", false, function(v) State.auto_revive = v end)
 
 local tabConfig = createTab("config", "CONFIG")
 createToggle(tabConfig, "Auto Server Hop", true, function(v) State.auto_hop = v end)
@@ -324,21 +324,17 @@ _G.ev = _G.ev or {}
 _G.ev.State = State
 
 -- ==========================================
--- AUTO REVIVE (UI CLICKER)
+-- AUTO REVIVE (BRUTEFORCE REMOTE)
 -- ==========================================
 local isReviving = false
-local lastReviveTime = 0
 
 task.spawn(function()
-    while task.wait(0.1) do
+    while task.wait(0.5) do
         if not State.auto_revive or isReviving then continue end
-        if tick() - lastReviveTime < 1 then continue end
-
         local char = LP.Character
         if not char then continue end
         local hrp = char:FindFirstChild("HumanoidRootPart")
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if not hrp or not hum or hum.Health <= 0 then continue end
+        if not hrp then continue end
 
         for _, p in ipairs(Players:GetPlayers()) do
             if p == LP then continue end
@@ -348,45 +344,39 @@ task.spawn(function()
                 local pHum = pChar:FindFirstChildOfClass("Humanoid")
                 
                 if pHum and pHum.Health <= 0 then
-                    local targetPart = pChar:FindFirstChild("HumanoidRootPart") or pChar:FindFirstChild("Head") or pChar:FindFirstChildWhichIsA("BasePart")
+                    local targetPart = pChar:FindFirstChild("HumanoidRootPart") or pChar:FindFirstChildWhichIsA("BasePart")
                     
                     if targetPart then
                         isReviving = true
-                        lastReviveTime = tick()
                         
-                        local offset = CFrame.new(math.random(-2,2), 2, math.random(-2,2))
-                        hrp.CFrame = targetPart.CFrame * offset
+                        -- Teleport ke mayat
+                        hrp.CFrame = targetPart.CFrame * CFrame.new(0, 2, 0)
                         hrp.AssemblyLinearVelocity = Vector3.zero
+                        task.wait(0.2) 
                         
-                        task.wait(0.1) -- Tunggu UI muncul
-                        
-                        -- CARI TOMBOL REVIVE DI LAYAR
-                        for _, gui in ipairs(CoreGui:GetChildren()) do
-                            if gui:IsA("ScreenGui") or gui:IsA("Folder") then
-                                for _, obj in ipairs(gui:GetDescendants()) do
-                                    if obj:IsA("TextButton") or obj:IsA("ImageButton") then
-                                        local n = obj.Name:lower()
-                                        if n:find("revive") or n:find("rescue") or n:find("plus") or n == "+" then
-                                            if obj.Visible then
-                                                pcall(function()
-                                                    if obj.Activate then obj:Activate() end
-                                                    obj.MouseButton1Click:Fire()
-                                                end)
-                                            end
-                                        end
-                                    end
-                                end
+                        -- BRUTEFORCE: Tembak SEMUA RemoteEvent yang ada di game
+                        for _, d in ipairs(game:GetDescendants()) do
+                            if d:IsA("RemoteEvent") then
+                                pcall(function()
+                                    d:FireServer(p) 
+                                    d:FireServer(p.Name)
+                                    d:FireServer(targetPart)
+                                end)
                             end
                         end
                         
-                        task.wait(0.5)
-                        
-                        if State.farm then
-                            hrp.CFrame = CFrame.new(Vector3.new(0, 1500, 0) + Vector3.new(0, 4, 0))
-                            hrp.AssemblyLinearVelocity = Vector3.zero
+                        -- Prompt fisik (kalau ada)
+                        local prompt = targetPart:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        if prompt then
+                            pcall(function() fireproximityprompt(prompt) end)
                         end
                         
-                        task.wait(0.5)
+                        task.wait(1)
+                        
+                        if State.farm then
+                            hrp.CFrame = CFrame.new(Vector3.new(0, 1504, 0))
+                        end
+                        
                         isReviving = false
                         break
                     end
