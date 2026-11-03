@@ -7,6 +7,7 @@ local State = _G.ev and _G.ev.State or {}
 local SAFE_Y = 1500
 local basePart = nil
 local lockPos = Vector3.new(0, SAFE_Y, 0)
+local isSweeping = false
 
 local function buildPlatform()
     if basePart and basePart.Parent then basePart:Destroy() end
@@ -23,6 +24,7 @@ local function buildPlatform()
     basePart = p
 end
 
+-- 1. Kunci Posisi (ANTI NEXBOT TP)
 RunService.Heartbeat:Connect(function()
     if not State.farm then 
         if basePart and basePart.Parent then
@@ -36,11 +38,11 @@ RunService.Heartbeat:Connect(function()
         buildPlatform()
     end
 
-    local char = LP.Character
-    if char then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            if (hrp.Position - lockPos).Magnitude > 3 then
+    if not isSweeping then
+        local char = LP.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp and (hrp.Position - lockPos).Magnitude > 10 then
                 hrp.CFrame = CFrame.new(lockPos + Vector3.new(0, 4, 0))
                 hrp.AssemblyLinearVelocity = Vector3.zero
             end
@@ -48,34 +50,63 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-RunService.Heartbeat:Connect(function()
-    if not State.candy or not State.farm then return end
-    local char = LP.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+-- 2. WISP SWEEP (Hit and Run)
+local function getSafeGroundSpot()
+    local spawn = Workspace:FindFirstChildOfClass("SpawnLocation")
+    if spawn then return spawn.Position + Vector3.new(0, 5, 0) end
+    return Vector3.new(0, 50, 0)
+end
 
-    local myPos = hrp.Position
-
-    for _, d in ipairs(Workspace:GetDescendants()) do
-        if d:IsA("BasePart") and d.Name ~= "ev_personal_base" then
-            local model = d:FindFirstAncestorOfClass("Model")
-            if model and Players:GetPlayerFromCharacter(model) then continue end
+task.spawn(function()
+    while task.wait(0.5) do
+        if State.candy then
+            local char = LP.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
             
-            local n = d.Name:lower()
-            local isWisp = n:find("wisp") or n:find("event") or n:find("halloween") or n:find("orb") or n:find("light")
-            
-            if isWisp then
-                d.CFrame = CFrame.new(myPos + Vector3.new(0, 3, 0))
-                
-                local prompt = d:FindFirstChildWhichIsA("ProximityPrompt", true)
-                if prompt then
-                    pcall(function() fireproximityprompt(prompt) end)
+            if hrp then
+                local targets = {}
+                for _, d in ipairs(Workspace:GetDescendants()) do
+                    if d:IsA("BasePart") then
+                        local n = d.Name:lower()
+                        local pName = d.Parent and d.Parent.Name:lower() or ""
+                        
+                        if n:find("wisp") or pName:find("wisp") or n:find("event") or pName:find("halloween") or n:find("treat") then
+                            if d.Name ~= "ev_personal_base" then
+                                table.insert(targets, d)
+                            end
+                        end
+                    end
                 end
-                
-                local tool = d:FindFirstAncestorOfClass("Tool")
-                if tool then
-                    tool.Parent = char
+
+                if #targets > 0 then
+                    isSweeping = true
+                    for _, target in ipairs(targets) do
+                        if not State.candy then break end
+                        
+                        hrp.CFrame = target.CFrame
+                        hrp.AssemblyLinearVelocity = Vector3.zero
+                        task.wait(0.05)
+                        
+                        local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        if prompt then
+                            pcall(function() fireproximityprompt(prompt) end)
+                        end
+                        
+                        if firetouchinterest then
+                            pcall(function() firetouchinterest(target, hrp, 0) end)
+                            task.wait(0.02)
+                            pcall(function() firetouchinterest(target, hrp, 1) end)
+                        end
+                    end
+                    
+                    if State.farm then
+                        hrp.CFrame = CFrame.new(lockPos + Vector3.new(0, 4, 0))
+                    else
+                        hrp.CFrame = CFrame.new(getSafeGroundSpot())
+                    end
+                    hrp.AssemblyLinearVelocity = Vector3.zero
+                    
+                    isSweeping = false
                 end
             end
         end
