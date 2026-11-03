@@ -126,7 +126,7 @@ Subtitle.Font = Font
 Subtitle.TextSize = 11
 Subtitle.TextColor3 = Theme.text_dim
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
-Subtitle.Text = "v3.5  •  ultimate edition"
+Subtitle.Text = "v4.0  •  checkpoint blink"
 Subtitle.Parent = TitleBox
 
 local function iconButton(parent, xOffset, symbol, color, callback)
@@ -311,14 +311,14 @@ createToggle(tabMovement, "Noclip", false, function(v) State.noclip = v end)
 local tabFarm = createTab("farm", "FARM")
 createToggle(tabFarm, "Auto Candy (Blink)", false, function(v) State.candy = v end)
 createToggle(tabFarm, "Farm Level (Basecamp)", false, function(v) State.farm = v end)
-createToggle(tabFarm, "Auto Revive (UI Click)", false, function(v) State.auto_revive = v end)
+createToggle(tabFarm, "Auto Revive (Blink)", false, function(v) State.auto_revive = v end)
 
 local tabConfig = createTab("config", "CONFIG")
 createToggle(tabConfig, "Auto Server Hop", true, function(v) State.auto_hop = v end)
 
 Tabs["farm"].page.Visible = true
 Tabs["farm"].button.TextColor3 = Theme.text
-StatusText.Text = "loaded v3.5"
+StatusText.Text = "loaded v4.0"
 
 _G.ev = _G.ev or {}
 _G.ev.State = State
