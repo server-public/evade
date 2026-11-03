@@ -4,9 +4,7 @@ local Workspace = game:GetService("Workspace")
 local LP = Players.LocalPlayer
 local State = _G.ev and _G.ev.State or {}
 
-local lastWispPos = nil
-
--- 1. KUNCI POSISI FARM
+-- 1. KUNCI POSISI FARM (Anti Geter)
 local basePart = nil
 RunService.Heartbeat:Connect(function()
     if not State.farm then 
@@ -31,8 +29,8 @@ RunService.Heartbeat:Connect(function()
         basePart = p
     end
 
-    -- Kunci di atas cuma kalau Auto Candy lagi gak jalan
-    if not State.candy then
+    -- Kunci di atas cuma kalau gak ada player mati yang mau di-revive
+    if not State.auto_revive then 
         local char = LP.Character
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -44,64 +42,43 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- 2. WISP COLLECTOR (BRUTEFORCE RADIUS 30)
-task.spawn(function()
-    while task.wait(0.1) do
-        if not State.candy then continue end
-        
-        local char = LP.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then continue end
+-- 2. TARIK WISP KE ATAS (Tarikan Magnet)
+RunService.Heartbeat:Connect(function()
+    if not State.candy then return end
+    local char = LP.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
 
-        -- Scan semua objek yang ada di map (BasePart atau Model)
-        for _, d in ipairs(Workspace:GetChildren()) do
-            if d:IsA("BasePart") or d:IsA("Model") then
-                -- Jangan tarik/tembak karakter player
-                local isPlayer = Players:GetPlayerFromCharacter(d)
-                if not isPlayer and d.Name ~= "ev_personal_base" then
-                    
-                    -- Hitung jarak objek ke pemain
-                    local objPos = d:IsA("Model") and d:GetPivot().Position or d.Position
-                    local distance = (hrp.Position - objPos).Magnitude
-                    
-                    -- Kalau objeknya deket (radius 30 meter)
-                    if distance < 30 then
-                        -- Teleport ke objek itu
-                        hrp.CFrame = CFrame.new(objPos + Vector3.new(0, 3, 0))
-                        hrp.AssemblyLinearVelocity = Vector3.zero
-                        lastWispPos = objPos
-                        
-                        -- Tembak SEMUA RemoteEvent (Bruteforce)
-                        for _, r in ipairs(game:GetDescendants()) do
-                            if r:IsA("RemoteEvent") then
-                                pcall(function()
-                                    r:FireServer(d) -- Kirim objeknya
-                                    r:FireServer(d.Name) -- Kirim namanya
-                                    r:FireServer() -- Kirim kosongan
-                                end)
-                            end
-                        end
-                        
-                        -- Sentuh langsung
-                        if firetouchinterest then
-                            pcall(function() firetouchinterest(d, hrp, 0) end)
-                            pcall(function() firetouchinterest(d, hrp, 1) end)
-                        end
-                        
-                        -- Pencet Prompt kalau ada
-                        local prompt = d:FindFirstChildWhichIsA("ProximityPrompt", true)
-                        if prompt then
-                            pcall(function() fireproximityprompt(prompt) end)
-                        end
-                        
-                        task.wait(0.1)
-                    end
+    local myPos = hrp.Position
+
+    -- Tarik semua Wisp ke posisi lo
+    for _, d in ipairs(Workspace:GetDescendants()) do
+        if d:IsA("BasePart") and d.Name ~= "ev_personal_base" then
+            -- Jangan tarik karakter player
+            local model = d:FindFirstAncestorOfClass("Model")
+            if model and Players:GetPlayerFromCharacter(model) then continue end
+            
+            local n = d.Name:lower()
+            local pName = d.Parent and d.Parent.Name:lower() or ""
+            
+            -- Filter: Nama Wisp
+            if n:find("wisp") or pName:find("wisp") or pName:find("halloween") then
+                
+                -- TARIK WISP NYA KE POSISI KITA
+                d.CFrame = CFrame.new(myPos + Vector3.new(0, 3, 0))
+                
+                -- Suruh server "Eh, gw nyentuh Wisp nih"
+                local prompt = d:FindFirstChildWhichIsA("ProximityPrompt", true)
+                if prompt then
+                    pcall(function() fireproximityprompt(prompt) end)
+                end
+                
+                if firetouchinterest then
+                    pcall(function() firetouchinterest(d, hrp, 0) end)
+                    pcall(function() firetouchinterest(d, hrp, 1) end)
                 end
             end
-        end
-        
-        if State.farm then
-            hrp.CFrame = CFrame.new(0, 1504, 0)
         end
     end
 end)
