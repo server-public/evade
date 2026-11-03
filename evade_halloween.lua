@@ -9,7 +9,6 @@ local lockPos = Vector3.new(0, SAFE_Y, 0)
 local basePart = nil
 local isBusy = false
 
--- Bikin basecamp
 local function buildPlatform()
     if basePart and basePart.Parent then basePart:Destroy() end
     local p = Instance.new("Part")
@@ -25,7 +24,7 @@ local function buildPlatform()
     basePart = p
 end
 
--- 1. KUNCI DI AWN (Hanya kalau gak sibuk)
+-- 1. KUNCI POSISI (Hanya jika TIDAK SEDANG BERGANTIAN TUGAS)
 RunService.Heartbeat:Connect(function()
     if not State.farm then 
         if basePart and basePart.Parent then
@@ -37,12 +36,12 @@ RunService.Heartbeat:Connect(function()
 
     if not basePart or not basePart.Parent then buildPlatform() end
 
-    -- Kalo lagi gak ngerjain apa-apa, kunci di atas
+    -- KUNCI MUTLAK: Hanya kunci kalau lagi gak ngerjain apa-apa
     if not isBusy then
         local char = LP.Character
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hrp and (hrp.Position - lockPos).Magnitude > 20 then
+            if hrp and (hrp.Position - lockPos).Magnitude > 15 then
                 hrp.CFrame = CFrame.new(lockPos + Vector3.new(0, 4, 0))
                 hrp.AssemblyLinearVelocity = Vector3.zero
             end
@@ -50,9 +49,9 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- 2. SISTEM KERJA (Revive & Wisp)
+-- 2. ROTASI KERJA (WISP & REVIVE)
 task.spawn(function()
-    while task.wait(0.2) do
+    while task.wait(0.5) do
         if isBusy then continue end
         
         local char = LP.Character
@@ -61,9 +60,7 @@ task.spawn(function()
 
         local didAction = false
 
-        -- ==========================================
-        -- A. REVIVE DULU (Prioritas Utama)
-        -- ==========================================
+        -- A. AUTO REVIVE
         if State.auto_revive then
             for _, p in ipairs(Players:GetPlayers()) do
                 if p ~= LP and p.Character then
@@ -73,29 +70,33 @@ task.spawn(function()
                         if targetPart then
                             isBusy = true
                             
-                            -- Teleport ke mayat
-                            hrp.CFrame = targetPart.CFrame * CFrame.new(0, 2, 0)
+                            -- NEMPEL PERSIS DI MAYAT (Biar server ngenalin jaraknya 0)
+                            hrp.CFrame = targetPart.CFrame
                             hrp.AssemblyLinearVelocity = Vector3.zero
-                            task.wait(0.3) -- Kasih waktu UI muncul
                             
-                            -- Tembak RemoteEvent Revive (Bruteforce)
+                            -- Jeda 1 detik biar UI game muncul
+                            task.wait(1)
+                            
+                            -- Tembak Remote yang kemungkinan besar adalah Revive
                             for _, r in ipairs(game:GetDescendants()) do
                                 if r:IsA("RemoteEvent") then
-                                    pcall(function()
-                                        r:FireServer(p)
-                                        r:FireServer(p.Name)
-                                        r:FireServer("Revive")
-                                    end)
+                                    local rn = r.Name:lower()
+                                    if rn:find("revive") or rn:find("rescue") or rn:find("heal") or rn:find("player") then
+                                        pcall(function()
+                                            r:FireServer(p) 
+                                            r:FireServer(p.Name)
+                                            r:FireServer(targetPart)
+                                        end)
+                                    end
                                 end
                             end
                             
-                            -- Pencet ProximityPrompt kalau ada
+                            -- Pencet Prompt fisik
                             local prompt = targetPart:FindFirstChildWhichIsA("ProximityPrompt", true)
                             if prompt then pcall(function() fireproximityprompt(prompt) end) end
                             
-                            task.wait(1.5) -- Tunggu server proses revive
+                            task.wait(1.5) -- Tunggu server respawn player
                             
-                            -- Balik ke atas kalau Farm nyala
                             if State.farm then
                                 hrp.CFrame = CFrame.new(lockPos + Vector3.new(0, 4, 0))
                             end
@@ -109,46 +110,45 @@ task.spawn(function()
             end
         end
 
-        -- ==========================================
-        -- B. WISP (Kalau gak jadi nge-revive)
-        -- ==========================================
+        -- B. AUTO WISP
         if not didAction and State.candy then
             for _, d in ipairs(Workspace:GetDescendants()) do
                 if d:IsA("BasePart") and d.Name ~= "ev_personal_base" then
                     local n = d.Name:lower()
                     local pName = d.Parent and d.Parent.Name:lower() or ""
                     
-                    -- Deteksi Wisp
                     if n:find("wisp") or pName:find("wisp") then
                         isBusy = true
                         
-                        -- Teleport NEMPEL ke Wisp
+                        -- NEMPEL PERSIS DI WISP
                         hrp.CFrame = CFrame.new(d.Position)
                         hrp.AssemblyLinearVelocity = Vector3.zero
                         task.wait(0.1)
                         
-                        -- Tembak RemoteEvent Wisp (Bruteforce)
+                        -- Tembak Remote Wisp
                         for _, r in ipairs(game:GetDescendants()) do
                             if r:IsA("RemoteEvent") then
-                                pcall(function()
-                                    r:FireServer(d)
-                                    r:FireServer(d.Name)
-                                    r:FireServer("Collect")
-                                end)
+                                local rn = r.Name:lower()
+                                if rn:find("wisp") or rn:find("collect") or rn:find("pickup") or rn:find("event") then
+                                    pcall(function()
+                                        r:FireServer(d)
+                                        r:FireServer(d.Name)
+                                    end)
+                                end
                             end
                         end
                         
-                        -- Sentuh fisik & Prompt
+                        -- Sentuh fisik
                         if firetouchinterest then
                             pcall(function() firetouchinterest(d, hrp, 0) end)
                             pcall(function() firetouchinterest(d, hrp, 1) end)
                         end
+                        
                         local prompt = d:FindFirstChildWhichIsA("ProximityPrompt", true)
                         if prompt then pcall(function() fireproximityprompt(prompt) end) end
                         
-                        task.wait(0.2)
+                        task.wait(0.3)
                         
-                        -- Balik ke atas kalau Farm nyala
                         if State.farm then
                             hrp.CFrame = CFrame.new(lockPos + Vector3.new(0, 4, 0))
                         end
