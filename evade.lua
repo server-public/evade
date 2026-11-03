@@ -32,13 +32,11 @@ end
 
 local Gui = Instance.new("ScreenGui"); Gui.Name = "EvadePanel_v1"; Gui.ResetOnSpawn = false; Gui.IgnoreGuiInset = true; Gui.Parent = CoreGui
 
--- PANEL UTAMA
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 480, 0, 400); Main.Position = UDim2.new(0.5, -240, 0.5, -200)
+Main.Size = UDim2.new(0, 480, 0, 420); Main.Position = UDim2.new(0.5, -240, 0.5, -210)
 Main.BackgroundColor3 = Theme.bg; Main.BorderSizePixel = 0; Main.Active = true; Main.Draggable = true; Main.ClipsDescendants = true; Main.Parent = Gui
 corner(Main, 8); stroke(Main, Theme.stroke, 2)
 
--- TOMBOL FLOATING "K"
 local FloatLogo = Instance.new("TextButton")
 FloatLogo.Size = UDim2.new(0, 50, 0, 50); FloatLogo.Position = UDim2.new(0, 20, 0.5, -25)
 FloatLogo.BackgroundColor3 = Theme.bg; FloatLogo.BorderSizePixel = 0; FloatLogo.Text = "K"
@@ -48,11 +46,10 @@ corner(FloatLogo, 25); stroke(FloatLogo, Theme.accent, 2)
 
 FloatLogo.MouseButton1Click:Connect(function() FloatLogo.Visible = false; Main.Visible = true end)
 
--- HEADER
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 40); Header.BackgroundColor3 = Theme.bg_secondary; Header.Parent = Main
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Font = FontBold; Title.TextSize = 16; Title.TextColor3 = Theme.accent; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Text = " > NETWORK REPLICATOR"; Title.Parent = Header; pad(Title, 14, 0, 0, 0)
+Title.Size = UDim2.new(1, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Font = FontBold; Title.TextSize = 16; Title.TextColor3 = Theme.accent; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Text = " > UI INJECTOR TROLL"; Title.Parent = Header; pad(Title, 14, 0, 0, 0)
 
 local function iconBtn(parent, x, txt, col, cb)
     local b = Instance.new("TextButton"); b.Size = UDim2.new(0, 24, 0, 24); b.Position = UDim2.new(1, x, 0.5, -12); b.BackgroundColor3 = Theme.bg_tertiary; b.Text = txt; b.TextColor3 = col; b.Font = FontBold; b.TextSize = 14; b.Parent = parent; corner(b, 4); b.MouseButton1Click:Connect(cb)
@@ -60,18 +57,15 @@ end
 iconBtn(Header, -70, "—", Theme.text_dim, function() Main.Visible = false; FloatLogo.Visible = true end)
 iconBtn(Header, -40, "✕", Theme.red, function() Gui:Destroy() end)
 
--- KONTEN
 local Content = Instance.new("Frame")
 Content.Size = UDim2.new(1, -20, 1, -60); Content.Position = UDim2.new(0, 10, 0, 50); Content.BackgroundTransparency = 1; Content.Parent = Main
 local ListLayout = Instance.new("UIListLayout"); ListLayout.Padding = UDim.new(0, 6); ListLayout.Parent = Content
 
--- INFO TARGET
 local TargetInfo = Instance.new("TextLabel")
 TargetInfo.Size = UDim2.new(1, 0, 0, 30); TargetInfo.BackgroundColor3 = Theme.bg_secondary; TargetInfo.Text = " Target: BELUM DIPILIH"
 TargetInfo.TextColor3 = Theme.red; TargetInfo.Font = FontBold; TargetInfo.TextXAlignment = Enum.TextXAlignment.Left; TargetInfo.Parent = Content
 corner(TargetInfo, 4); pad(TargetInfo, 10, 0, 0, 0)
 
--- LIST PLAYER
 local PlayerList = Instance.new("ScrollingFrame")
 PlayerList.Size = UDim2.new(1, 0, 0, 100); PlayerList.BackgroundColor3 = Theme.bg_tertiary; PlayerList.BorderSizePixel = 0; PlayerList.ScrollBarThickness = 4
 PlayerList.Parent = Content; corner(PlayerList, 4)
@@ -80,7 +74,6 @@ local function refreshList()
     for _, v in ipairs(PlayerList:GetChildren()) do
         if v:IsA("TextButton") then v:Destroy() end
     end
-    
     local yPos = 0
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LP then
@@ -109,63 +102,89 @@ task.spawn(function()
     end
 end)
 
--- FUNGSI EKSEKUSI
 local function createActionBtn(parent, text, col, callback)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, 0, 0, 40); b.BackgroundColor3 = Theme.bg_secondary; b.Text = text; b.TextColor3 = col; b.Font = FontBold; b.TextSize = 14; b.Parent = parent; corner(b, 4); stroke(b, Theme.stroke, 1)
     b.MouseButton1Click:Connect(callback)
 end
 
-local function takeOwnershipAndModify(target, mode)
-    if not target or not target.Character then return end
-    local char = target.Character
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+-- FUNGSI INJECT UI KE PLAYER LAIN
+local function injectUI(target, type)
+    if not target or not target:FindFirstChild("PlayerGui") then return end
+    local pGui = target:FindFirstChild("PlayerGui")
     
-    -- Coba ambil Network Ownership
-    local success = pcall(function()
-        hrp:SetNetworkOwner(LP)
-    end)
-    
-    if success then
-        if mode == "TITAN" then
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.Size = part.Size * 2.5
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0.01, 0.3, 0.5, 1, 1)
-                end
+    if type == "ERROR" then
+        local errGui = Instance.new("ScreenGui")
+        errGui.Name = "HackedError"
+        errGui.ResetOnSpawn = false
+        errGui.Parent = pGui
+        
+        local frame = Instance.new("Frame", errGui)
+        frame.Size = UDim2.new(1, 0, 1, 0)
+        frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        
+        local txt = Instance.new("TextLabel", frame)
+        txt.Size = UDim2.new(1, 0, 0.3, 0)
+        txt.Position = UDim2.new(0, 0, 0.35, 0)
+        txt.BackgroundTransparency = 1
+        txt.Text = "SYSTEM ERROR: YOU HAVE BEEN HACKED"
+        txt.TextColor3 = Color3.fromRGB(255, 0, 0)
+        txt.Font = Enum.Font.Code
+        txt.TextScaled = true
+        
+        task.delay(5, function() errGui:Destroy() end)
+        
+    elseif type == "FLASH" then
+        local flashGui = Instance.new("ScreenGui")
+        flashGui.Name = "HackedFlash"
+        flashGui.ResetOnSpawn = false
+        flashGui.Parent = pGui
+        
+        local frame = Instance.new("Frame", flashGui)
+        frame.Size = UDim2.new(1, 0, 1, 0)
+        frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        
+        task.spawn(function()
+            for i = 1, 10 do
+                frame.BackgroundTransparency = (i % 2 == 0) and 1 or 0
+                task.wait(0.2)
             end
-        elseif mode == "JAIL" then
-            local jail_anchor = Instance.new("Part")
-            jail_anchor.Anchored = true; jail_anchor.Size = Vector3.new(1, 1, 1); jail_anchor.Transparency = 1; jail_anchor.CFrame = hrp.CFrame; jail_anchor.Parent = Workspace
+            flashGui:Destroy()
+        end)
+        
+    elseif type == "CHAT" then
+        local char = target.Character
+        if char and char:FindFirstChild("Head") then
+            local bill = Instance.new("BillboardGui", char.Head)
+            bill.Size = UDim2.new(0, 300, 0, 50)
+            bill.StudsOffset = Vector3.new(0, 3, 0)
+            bill.AlwaysOnTop = true
             
-            local weld = Instance.new("WeldConstraint"); weld.Part0 = hrp; weld.Part1 = jail_anchor; weld.Parent = hrp
+            local txt = Instance.new("TextLabel", bill)
+            txt.Size = UDim2.new(1, 0, 1, 0)
+            txt.BackgroundTransparency = 1
+            txt.Text = "I AM HACKED"
+            txt.TextColor3 = Color3.fromRGB(255, 0, 0)
+            txt.TextStrokeTransparency = 0
+            txt.Font = Enum.Font.Code
+            txt.TextScaled = true
             
-            for i = 1, 4 do
-                local wall = Instance.new("Part")
-                wall.Size = Vector3.new(15, 20, 1); wall.Anchored = false; wall.Transparency = 0.3
-                wall.Color = Color3.fromRGB(100, 100, 100); wall.Material = Enum.Material.ForceField; wall.Parent = Workspace
-                
-                local wall_weld = Instance.new("WeldConstraint"); wall_weld.Part0 = jail_anchor; wall_weld.Part1 = wall; wall_weld.Parent = wall
-                
-                if i == 1 then wall.CFrame = jail_anchor.CFrame * CFrame.new(0, 0, -7) 
-                elseif i == 2 then wall.CFrame = jail_anchor.CFrame * CFrame.new(0, 0, 7) 
-                elseif i == 3 then wall.CFrame = jail_anchor.CFrame * CFrame.new(-7, 0, 0) 
-                elseif i == 4 then wall.CFrame = jail_anchor.CFrame * CFrame.new(7, 0, 0) end
-            end
+            task.delay(5, function() bill:Destroy() end)
         end
-    else
-        warn("[Evade] Gagal ambil Network Ownership. Server menolak.")
     end
 end
 
 -- BUTTON AKSI
-createActionBtn(Content, "[ EXECUTE: TITAN ]", Color3.fromRGB(0, 255, 255), function()
-    if SelectedPlayer then takeOwnershipAndModify(SelectedPlayer, "TITAN") end
+createActionBtn(Content, "[ POPUP ERROR LAYAR HITAM ]", Color3.fromRGB(255, 0, 0), function()
+    if SelectedPlayer then injectUI(SelectedPlayer, "ERROR") end
 end)
 
-createActionBtn(Content, "[ EXECUTE: JAIL ]", Color3.fromRGB(255, 150, 0), function()
-    if SelectedPlayer then takeOwnershipAndModify(SelectedPlayer, "JAIL") end
+createActionBtn(Content, "[ FLASHING SCREEN (STROBE) ]", Color3.fromRGB(255, 255, 255), function()
+    if SelectedPlayer then injectUI(SelectedPlayer, "FLASH") end
 end)
 
-print("[@alpin67] Full Network Replicator Loaded.")
+createActionBtn(Content, "[ CHAT MELAYANG DI KEPALA ]", Color3.fromRGB(0, 255, 255), function()
+    if SelectedPlayer then injectUI(SelectedPlayer, "CHAT") end
+end)
+
+print("[@alpin67] UI Troll Injector Loaded.")
