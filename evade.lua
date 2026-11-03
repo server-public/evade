@@ -126,7 +126,7 @@ Subtitle.Font = Font
 Subtitle.TextSize = 11
 Subtitle.TextColor3 = Theme.text_dim
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
-Subtitle.Text = "v2.0  •  hit and run edition"
+Subtitle.Text = "v2.0  •  missile edition"
 Subtitle.Parent = TitleBox
 
 local function iconButton(parent, xOffset, symbol, color, callback)
@@ -311,7 +311,7 @@ createToggle(tabMovement, "Noclip", false, function(v) State.noclip = v end)
 local tabFarm = createTab("farm", "FARM")
 createToggle(tabFarm, "Auto Candy (Wisps)", false, function(v) State.candy = v end)
 createToggle(tabFarm, "Farm Level (Basecamp)", false, function(v) State.farm = v end)
-createToggle(tabFarm, "Auto Revive (Bruteforce)", false, function(v) State.auto_revive = v end)
+createToggle(tabFarm, "Auto Revive", false, function(v) State.auto_revive = v end)
 
 local tabConfig = createTab("config", "CONFIG")
 createToggle(tabConfig, "Auto Server Hop", true, function(v) State.auto_hop = v end)
@@ -324,7 +324,7 @@ _G.ev = _G.ev or {}
 _G.ev.State = State
 
 -- ==========================================
--- AUTO REVIVE (BRUTEFORCE REMOTE)
+-- AUTO REVIVE (TELEPORT - PAKAI OFFSET)
 -- ==========================================
 local isReviving = false
 
@@ -354,7 +354,7 @@ task.spawn(function()
                         hrp.AssemblyLinearVelocity = Vector3.zero
                         task.wait(0.2) 
                         
-                        -- BRUTEFORCE: Tembak SEMUA RemoteEvent yang ada di game
+                        -- Tembak RemoteEvent
                         for _, d in ipairs(game:GetDescendants()) do
                             if d:IsA("RemoteEvent") then
                                 pcall(function()
@@ -365,7 +365,6 @@ task.spawn(function()
                             end
                         end
                         
-                        -- Prompt fisik (kalau ada)
                         local prompt = targetPart:FindFirstChildWhichIsA("ProximityPrompt", true)
                         if prompt then
                             pcall(function() fireproximityprompt(prompt) end)
