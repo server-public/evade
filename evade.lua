@@ -1,6 +1,5 @@
 local Players           = game:GetService("Players")
 local RunService        = game:GetService("RunService")
-local TweenService      = game:GetService("TweenService")
 local Workspace         = game:GetService("Workspace")
 local CoreGui           = game:GetService("CoreGui")
 
@@ -10,315 +9,210 @@ if CoreGui:FindFirstChild("EvadePanel_v1") then
     CoreGui.EvadePanel_v1:Destroy()
 end
 
-local State = {
-    esp = false, aimbot = false, dodge = false, speed = false,
-    noclip = false, auto_obj = false, candy = false, safe = false,
-    farm = false, auto_revive = false, anti_ban = true, auto_hop = true, anti_tp = false,
-    aim_fov = 250, aim_smooth = 0.35, speed_value = 32,
-}
+local State = { esp = false, aimbot = false, speed = false, noclip = false, farm = false, candy = false, auto_revive = false }
 
 local Theme = {
-    bg = Color3.fromRGB(18, 18, 24), bg_secondary = Color3.fromRGB(26, 26, 34),
-    bg_tertiary = Color3.fromRGB(34, 34, 44), stroke = Color3.fromRGB(48, 48, 60),
-    text = Color3.fromRGB(230, 230, 240), text_dim = Color3.fromRGB(140, 140, 160),
-    accent = Color3.fromRGB(120, 100, 255), accent_dim = Color3.fromRGB(80, 70, 180),
-    green = Color3.fromRGB(80, 220, 130), red = Color3.fromRGB(230, 80, 100),
+    bg = Color3.fromRGB(10, 10, 15), bg_secondary = Color3.fromRGB(20, 20, 30),
+    bg_tertiary = Color3.fromRGB(35, 35, 50), stroke = Color3.fromRGB(50, 50, 70),
+    text = Color3.fromRGB(255, 255, 255), text_dim = Color3.fromRGB(150, 150, 150),
+    accent = Color3.fromRGB(0, 255, 150), red = Color3.fromRGB(255, 50, 50),
 }
 
-local Font = Enum.Font.GothamMedium
+local Font = Enum.Font.Code
 local FontBold = Enum.Font.GothamBold
 
 local function corner(parent, radius)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, radius or 6)
-    c.Parent = parent
-    return c
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, radius or 6); c.Parent = parent; return c
 end
-
-local function stroke(parent, color, thickness, transparency)
-    local s = Instance.new("UIStroke")
-    s.Color = color or Theme.stroke
-    s.Thickness = thickness or 1
-    s.Transparency = transparency or 0
-    s.Parent = parent
-    return s
+local function stroke(parent, color, thickness)
+    local s = Instance.new("UIStroke"); s.Color = color; s.Thickness = thickness or 1; s.Parent = parent; return s
 end
-
 local function pad(parent, l, r, t, b)
-    local p = Instance.new("UIPadding")
-    p.PaddingLeft = UDim.new(0, l or 0)
-    p.PaddingRight = UDim.new(0, r or 0)
-    p.PaddingTop = UDim.new(0, t or 0)
-    p.PaddingBottom = UDim.new(0, b or 0)
-    p.Parent = parent
-    return p
+    local p = Instance.new("UIPadding"); p.PaddingLeft = UDim.new(0, l or 0); p.PaddingRight = UDim.new(0, r or 0); p.PaddingTop = UDim.new(0, t or 0); p.PaddingBottom = UDim.new(0, b or 0); p.Parent = parent; return p
 end
 
-local Gui = Instance.new("ScreenGui")
-Gui.Name = "EvadePanel_v1"
-Gui.ResetOnSpawn = false
-Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-Gui.IgnoreGuiInset = true
-Gui.DisplayOrder = 999
-Gui.Parent = CoreGui
+local Gui = Instance.new("ScreenGui"); Gui.Name = "EvadePanel_v1"; Gui.ResetOnSpawn = false; Gui.IgnoreGuiInset = true; Gui.Parent = CoreGui
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 420, 0, 340)
-Main.Position = UDim2.new(0.5, -210, 0.5, -170)
-Main.BackgroundColor3 = Theme.bg
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Draggable = true
-Main.ClipsDescendants = true
-Main.Parent = Gui
-corner(Main, 10)
-stroke(Main, Theme.stroke, 1, 0)
-
-local FloatLogo = Instance.new("TextButton")
-FloatLogo.Size = UDim2.new(0, 46, 0, 46)
-FloatLogo.Position = UDim2.new(0, 50, 0.5, -23)
-FloatLogo.BackgroundColor3 = Theme.bg
-FloatLogo.BorderSizePixel = 0
-FloatLogo.Text = "K"
-FloatLogo.TextColor3 = Theme.accent
-FloatLogo.Font = FontBold
-FloatLogo.TextSize = 20
-FloatLogo.Visible = false
-FloatLogo.Active = true
-FloatLogo.Draggable = true
-FloatLogo.Parent = Gui
-corner(FloatLogo, 23)
-stroke(FloatLogo, Theme.accent, 2, 0)
-
-FloatLogo.MouseButton1Click:Connect(function()
-    FloatLogo.Visible = false
-    Main.Visible = true
-end)
+Main.Size = UDim2.new(0, 500, 0, 400); Main.Position = UDim2.new(0.5, -250, 0.5, -200)
+Main.BackgroundColor3 = Theme.bg; Main.BorderSizePixel = 0; Main.Active = true; Main.Draggable = true; Main.ClipsDescendants = true; Main.Parent = Gui
+corner(Main, 8); stroke(Main, Theme.stroke, 2)
 
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 44)
-Header.BackgroundColor3 = Theme.bg_secondary
-Header.BorderSizePixel = 0
-Header.Parent = Main
-
-local TitleBox = Instance.new("Frame")
-TitleBox.Size = UDim2.new(1, -100, 1, 0)
-TitleBox.Position = UDim2.new(0, 14, 0, 0)
-TitleBox.BackgroundTransparency = 1
-TitleBox.Parent = Header
-
+Header.Size = UDim2.new(1, 0, 0, 40); Header.BackgroundColor3 = Theme.bg_secondary; Header.Parent = Main
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 22)
-Title.Position = UDim2.new(0, 0, 0, 6)
-Title.BackgroundTransparency = 1
-Title.Font = FontBold
-Title.TextSize = 15
-Title.TextColor3 = Theme.text
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Text = "EVADE PANEL"
-Title.Parent = TitleBox
+Title.Size = UDim2.new(1, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Font = FontBold; Title.TextSize = 16; Title.TextColor3 = Theme.accent; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Text = " > SERVER DOMINANCE // GOD MODE"; Title.Parent = Header; pad(Title, 14, 0, 0, 0)
 
-local Subtitle = Instance.new("TextLabel")
-Subtitle.Size = UDim2.new(1, 0, 0, 16)
-Subtitle.Position = UDim2.new(0, 0, 0, 24)
-Subtitle.BackgroundTransparency = 1
-Subtitle.Font = Font
-Subtitle.TextSize = 11
-Subtitle.TextColor3 = Theme.text_dim
-Subtitle.TextXAlignment = Enum.TextXAlignment.Left
-Subtitle.Text = "v4.0  •  checkpoint blink"
-Subtitle.Parent = TitleBox
-
-local function iconButton(parent, xOffset, symbol, color, callback)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 28, 0, 28)
-    b.Position = UDim2.new(1, xOffset, 0, 8)
-    b.BackgroundColor3 = Theme.bg_tertiary
-    b.BorderSizePixel = 0
-    b.Text = symbol
-    b.TextColor3 = color
-    b.Font = FontBold
-    b.TextSize = 14
-    b.AutoButtonColor = false
-    b.Parent = parent
-    corner(b, 6)
-    b.MouseButton1Click:Connect(callback)
-    return b
+local function iconBtn(parent, x, txt, col, cb)
+    local b = Instance.new("TextButton"); b.Size = UDim2.new(0, 24, 0, 24); b.Position = UDim2.new(1, x, 0.5, -12); b.BackgroundColor3 = Theme.bg_tertiary; b.Text = txt; b.TextColor3 = col; b.Font = FontBold; b.TextSize = 12; b.Parent = parent; corner(b, 4); b.MouseButton1Click:Connect(cb)
 end
-
-iconButton(Header, -72, "—", Theme.text_dim, function()
-    Main.Visible = false
-    FloatLogo.Visible = true
-end)
-iconButton(Header, -40, "✕", Theme.red, function()
-    Gui:Destroy()
-end)
+iconBtn(Header, -70, "─", Theme.text_dim, function() Main.Visible = false end)
+iconBtn(Header, -40, "✕", Theme.red, function() Gui:Destroy() end)
 
 local TabBar = Instance.new("Frame")
-TabBar.Size = UDim2.new(1, -20, 0, 32)
-TabBar.Position = UDim2.new(0, 10, 0, 52)
-TabBar.BackgroundColor3 = Theme.bg_secondary
-TabBar.BorderSizePixel = 0
-TabBar.Parent = Main
-corner(TabBar, 6)
-stroke(TabBar, Theme.stroke, 1, 0.5)
+TabBar.Size = UDim2.new(1, -20, 0, 30); TabBar.Position = UDim2.new(0, 10, 0, 50); TabBar.BackgroundColor3 = Theme.bg_secondary; TabBar.Parent = Main; corner(TabBar, 4)
+local TabList = Instance.new("UIListLayout"); TabList.FillDirection = Enum.FillDirection.Horizontal; TabList.SortOrder = Enum.SortOrder.LayoutOrder; TabList.Padding = UDim.new(0, 2); TabList.Parent = TabBar; pad(TabBar, 2, 2, 2, 2)
 
-local TabListLayout = Instance.new("UIListLayout")
-TabListLayout.FillDirection = Enum.FillDirection.Horizontal
-TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-TabListLayout.Padding = UDim.new(0, 2)
-TabListLayout.Parent = TabBar
-pad(TabBar, 2, 2, 2, 2)
-
-local ContentArea = Instance.new("Frame")
-ContentArea.Size = UDim2.new(1, -20, 1, -142)
-ContentArea.Position = UDim2.new(0, 10, 0, 92)
-ContentArea.BackgroundTransparency = 1
-ContentArea.Parent = Main
-
-local Footer = Instance.new("Frame")
-Footer.Size = UDim2.new(1, 0, 0, 26)
-Footer.Position = UDim2.new(0, 0, 1, -26)
-Footer.BackgroundColor3 = Theme.bg_secondary
-Footer.BorderSizePixel = 0
-Footer.Parent = Main
-
-local StatusDot = Instance.new("Frame")
-StatusDot.Size = UDim2.new(0, 8, 0, 8)
-StatusDot.Position = UDim2.new(0, 14, 0.5, -4)
-StatusDot.BackgroundColor3 = Theme.green
-StatusDot.BorderSizePixel = 0
-StatusDot.Parent = Footer
-corner(StatusDot, 4)
-
-local StatusText = Instance.new("TextLabel")
-StatusText.Size = UDim2.new(1, -60, 1, 0)
-StatusText.Position = UDim2.new(0, 28, 0, 0)
-StatusText.BackgroundTransparency = 1
-StatusText.Font = Font
-StatusText.TextSize = 11
-StatusText.TextColor3 = Theme.text_dim
-StatusText.TextXAlignment = Enum.TextXAlignment.Left
-StatusText.Text = "ready"
-StatusText.Parent = Footer
-
-local function createToggle(parent, text, initial, callback)
-    local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 36)
-    row.BackgroundColor3 = Theme.bg_secondary
-    row.BackgroundTransparency = 0.4
-    row.BorderSizePixel = 0
-    row.Parent = parent
-    corner(row, 6)
-    pad(row, 12, 12, 0, 0)
-
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -60, 1, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Font = Font
-    lbl.TextSize = 13
-    lbl.TextColor3 = Theme.text
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Text = text
-    lbl.Parent = row
-
-    local switchBg = Instance.new("Frame")
-    switchBg.Size = UDim2.new(0, 40, 0, 22)
-    switchBg.Position = UDim2.new(1, -40, 0.5, -11)
-    switchBg.BackgroundColor3 = initial and Theme.accent or Theme.bg_tertiary
-    switchBg.BorderSizePixel = 0
-    switchBg.Parent = row
-    corner(switchBg, 11)
-
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 16, 0, 16)
-    knob.Position = initial and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
-    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    knob.BorderSizePixel = 0
-    knob.Parent = switchBg
-    corner(knob, 8)
-
-    local clickArea = Instance.new("TextButton")
-    clickArea.Size = UDim2.new(1, 0, 1, 0)
-    clickArea.BackgroundTransparency = 1
-    clickArea.Text = ""
-    clickArea.Parent = row
-
-    local state = initial
-    clickArea.MouseButton1Click:Connect(function()
-        state = not state
-        TweenService:Create(switchBg, TweenInfo.new(0.2), {
-            BackgroundColor3 = state and Theme.accent or Theme.bg_tertiary
-        }):Play()
-        TweenService:Create(knob, TweenInfo.new(0.2), {
-            Position = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
-        }):Play()
-        if callback then callback(state) end
-    end)
-end
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -20, 1, -142); Content.Position = UDim2.new(0, 10, 0, 88); Content.BackgroundTransparency = 1; Content.Parent = Main
 
 local Tabs = {}
-local function createTab(name, displayName)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 90, 1, 0)
-    btn.BackgroundColor3 = Theme.bg_secondary
-    btn.BackgroundTransparency = 1
-    btn.BorderSizePixel = 0
-    btn.Text = displayName
-    btn.TextColor3 = Theme.text_dim
-    btn.Font = FontBold
-    btn.TextSize = 12
-    btn.AutoButtonColor = false
-    btn.Parent = TabBar
-    corner(btn, 4)
-
-    local page = Instance.new("ScrollingFrame")
-    page.Size = UDim2.new(1, 0, 1, 0)
-    page.BackgroundTransparency = 1
-    page.BorderSizePixel = 0
-    page.ScrollBarThickness = 4
-    page.Visible = false
-    page.Parent = ContentArea
-
-    local listLayout = Instance.new("UIListLayout")
-    listLayout.Padding = UDim.new(0, 6)
-    listLayout.Parent = page
-
+local function createTab(name, disp)
+    local btn = Instance.new("TextButton"); btn.Size = UDim2.new(0, 100, 1, 0); btn.BackgroundTransparency = 1; btn.Text = disp; btn.TextColor3 = Theme.text_dim; btn.Font = FontBold; btn.TextSize = 12; btn.Parent = TabBar; corner(btn, 4)
+    local page = Instance.new("ScrollingFrame"); page.Size = UDim2.new(1, 0, 1, 0); page.BackgroundTransparency = 1; page.ScrollBarThickness = 2; page.Visible = false; page.Parent = Content
+    local ll = Instance.new("UIListLayout"); ll.Padding = UDim.new(0, 6); ll.Parent = page
     Tabs[name] = {button = btn, page = page}
     btn.MouseButton1Click:Connect(function()
-        for tname, tdata in pairs(Tabs) do
-            tdata.page.Visible = (tname == name)
-            tdata.button.TextColor3 = (tname == name) and Theme.text or Theme.text_dim
+        for n, t in pairs(Tabs) do
+            t.page.Visible = (n == name)
+            t.button.TextColor3 = (n == name) and Theme.accent or Theme.text_dim
         end
     end)
     return page
 end
 
-local tabCombat = createTab("combat", "COMBAT")
-createToggle(tabCombat, "ESP Highlight", false, function(v) State.esp = v end)
-createToggle(tabCombat, "Aimbot", false, function(v) State.aimbot = v end)
+local function createActionBtn(parent, text, col, callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 36); b.BackgroundColor3 = Theme.bg_secondary; b.Text = text; b.TextColor3 = col; b.Font = FontBold; b.TextSize = 13; b.Parent = parent; corner(b, 4); stroke(b, Theme.stroke, 1)
+    b.MouseButton1Click:Connect(callback)
+end
 
-local tabMovement = createTab("movement", "MOVEMENT")
-createToggle(tabMovement, "Speed Hack", false, function(v)
-    State.speed = v
-    if LP.Character then
-        local hum = LP.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = v and State.speed_value or 16 end
+-- FUNGSI BANTUAN: CARI PLAYER TERDEKAT
+local function getNearestPlayer()
+    local char = LP.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+    local hrp = char.HumanoidRootPart
+    local closest, dist = nil, math.huge
+    
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local d = (p.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+            if d < dist then
+                dist = d
+                closest = p
+            end
+        end
+    end
+    return closest
+end
+
+-- TAB: PENJARA
+local tabJail = createTab("jail", "PENJARA")
+
+createActionBtn(tabJail, "[ PENJARAIN PLAYER TERDEKAT ]", Color3.fromRGB(255, 150, 0), function()
+    local target = getNearestPlayer()
+    if not target or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local hrp = target.Character.HumanoidRootPart
+    local pos = hrp.Position
+    
+    -- Bikin 5 dinding (kubus berongga)
+    local walls = {
+        {Size = Vector3.new(10, 15, 1), Offset = Vector3.new(0, 0, -5)}, -- Depan
+        {Size = Vector3.new(10, 15, 1), Offset = Vector3.new(0, 0, 5)},  -- Belakang
+        {Size = Vector3.new(1, 15, 10), Offset = Vector3.new(-5, 0, 0)}, -- Kiri
+        {Size = Vector3.new(1, 15, 10), Offset = Vector3.new(5, 0, 0)},  -- Kanan
+        {Size = Vector3.new(10, 1, 10), Offset = Vector3.new(0, -7, 0)}  -- Lantai
+    }
+    
+    for _, w in ipairs(walls) do
+        local part = Instance.new("Part")
+        part.Size = w.Size
+        part.Position = pos + w.Offset
+        part.Anchored = true
+        part.CanCollide = true
+        part.Color = Color3.fromRGB(100, 100, 100)
+        part.Material = Enum.Material.Metal
+        part.Transparency = 0.3
+        part.Parent = Workspace
+        
+        -- Efek teks di dinding
+        local sg = Instance.new("SurfaceGui", part)
+        local txt = Instance.new("TextLabel", sg)
+        txt.Size = UDim2.new(1, 0, 1, 0)
+        txt.BackgroundTransparency = 1
+        txt.Text = "JAILED"
+        txt.TextColor3 = Color3.fromRGB(255, 0, 0)
+        txt.TextScaled = true
+        txt.Font = Enum.Font.Code
+        
+        -- Hilangin dalam 15 detik
+        task.delay(15, function() 
+            if part and part.Parent then part:Destroy() end 
+        end)
     end
 end)
-createToggle(tabMovement, "Noclip", false, function(v) State.noclip = v end)
 
-local tabFarm = createTab("farm", "FARM")
-createToggle(tabFarm, "Auto Candy (Blink)", false, function(v) State.candy = v end)
-createToggle(tabFarm, "Farm Level (Basecamp)", false, function(v) State.farm = v end)
-createToggle(tabFarm, "Auto Revive (Blink)", false, function(v) State.auto_revive = v end)
+-- TAB: SCALE (TITAN & KECIL)
+local tabScale = createTab("scale", "UKURAN")
 
-local tabConfig = createTab("config", "CONFIG")
-createToggle(tabConfig, "Auto Server Hop", true, function(v) State.auto_hop = v end)
+createActionBtn(tabScale, "[ BIKIN TITAN (RAKSASA) ]", Color3.fromRGB(0, 255, 255), function()
+    local target = getNearestPlayer()
+    if not target or not target.Character then return end
+    
+    for _, part in ipairs(target.Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            -- Perbesar ukuran 10x lipat
+            part.Size = part.Size * 10
+            part.CustomPhysicalProperties = PhysicalProperties.new(0.01, 0.3, 0.5, 1, 1) -- Biar gak hancur
+        end
+    end
+end)
 
-Tabs["farm"].page.Visible = true
-Tabs["farm"].button.TextColor3 = Theme.text
-StatusText.Text = "loaded v4.0"
+createActionBtn(tabScale, "[ BIKIN KECIL (SEMUT) ]", Color3.fromRGB(255, 100, 255), function()
+    local target = getNearestPlayer()
+    if not target or not target.Character then return end
+    
+    for _, part in ipairs(target.Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            -- Perkecil ukuran 5x lipat
+            part.Size = part.Size / 5
+        end
+    end
+end)
+
+createActionBtn(tabScale, "[ KEMBALIKAN NORMAL ]", Color3.fromRGB(0, 255, 0), function()
+    local target = getNearestPlayer()
+    if not target or not target.Character then return end
+    
+    -- Reset (perlu relog kalau terlalu rusak, tapi ini coba reset default R6)
+    for _, part in ipairs(target.Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            -- Asumsi default R6 size
+            if part.Name == "Head" then part.Size = Vector3.new(2, 1, 1)
+            elseif part.Name == "Torso" then part.Size = Vector3.new(2, 2, 1)
+            elseif part.Name == "HumanoidRootPart" then part.Size = Vector3.new(2, 2, 1)
+            elseif string.find(part.Name, "Arm") then part.Size = Vector3.new(1, 2, 1)
+            elseif string.find(part.Name, "Leg") then part.Size = Vector3.new(1, 2, 1)
+            end
+        end
+    end
+end)
+
+-- TAB: SERVER HACK
+local tabServer = createTab("server", "SERVER")
+
+createActionBtn(tabServer, "[ BROADCAST MESSAGE RAKSASA ]", Color3.fromRGB(255, 0, 0), function()
+    local msg = "SERVER HACKED BY ADMIN."
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(200, 40, 2)
+    part.Position = Vector3.new(0, 100, 0)
+    part.Anchored = true
+    part.CanCollide = false
+    part.Transparency = 1
+    part.Parent = Workspace
+    
+    local sg = Instance.new("SurfaceGui", part)
+    sg.Face = Enum.NormalId.Front
+    local txt = Instance.new("TextLabel", sg)
+    txt.Size = UDim2.new(1, 0, 1, 0); txt.BackgroundTransparency = 0.5; txt.BackgroundColor3 = Color3.new(0,0,0)
+    txt.Text = msg; txt.TextColor3 = Color3.fromRGB(255, 0, 0); txt.TextStrokeTransparency = 0; txt.Font = Enum.Font.Code; txt.TextSize = 50
+    
+    task.delay(10, function() part:Destroy() end)
+end)
+
+Tabs["jail"].page.Visible = true
+Tabs["jail"].button.TextColor3 = Theme.accent
 
 _G.ev = _G.ev or {}
 _G.ev.State = State
