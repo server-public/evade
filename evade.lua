@@ -311,7 +311,7 @@ createToggle(tabMovement, "Noclip", false, function(v) State.noclip = v end)
 local tabFarm = createTab("farm", "FARM")
 createToggle(tabFarm, "Auto Candy (Wisps)", false, function(v) State.candy = v end)
 createToggle(tabFarm, "Farm Level (Basecamp)", false, function(v) State.farm = v end)
-createToggle(tabFarm, "Auto Revive (Hit & Run)", false, function(v) State.auto_revive = v end)
+createToggle(tabFarm, "Auto Revive (UI Click)", false, function(v) State.auto_revive = v end)
 
 local tabConfig = createTab("config", "CONFIG")
 createToggle(tabConfig, "Auto Server Hop", true, function(v) State.auto_hop = v end)
@@ -324,19 +324,16 @@ _G.ev = _G.ev or {}
 _G.ev.State = State
 
 -- ==========================================
--- AUTO REVIVE (HIT AND RUN)
+-- AUTO REVIVE (UI CLICKER)
 -- ==========================================
 local isReviving = false
-
-local function getSafeGroundSpot()
-    local spawn = Workspace:FindFirstChildOfClass("SpawnLocation")
-    if spawn then return spawn.Position + Vector3.new(0, 5, 0) end
-    return Vector3.new(0, 50, 0)
-end
+local lastReviveTime = 0
 
 task.spawn(function()
     while task.wait(0.1) do
         if not State.auto_revive or isReviving then continue end
+        if tick() - lastReviveTime < 1 then continue end
+
         local char = LP.Character
         if not char then continue end
         local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -355,48 +352,39 @@ task.spawn(function()
                     
                     if targetPart then
                         isReviving = true
+                        lastReviveTime = tick()
                         
                         local offset = CFrame.new(math.random(-2,2), 2, math.random(-2,2))
                         hrp.CFrame = targetPart.CFrame * offset
                         hrp.AssemblyLinearVelocity = Vector3.zero
                         
-                        local prompt = targetPart:FindFirstChildWhichIsA("ProximityPrompt", true) 
-                                    or pChar:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        task.wait(0.1) -- Tunggu UI muncul
                         
-                        if not prompt then
-                            for _, obj in ipairs(Workspace:GetDescendants()) do
-                                if obj:IsA("ProximityPrompt") and obj.Parent:IsA("BasePart") then
-                                    if (obj.Parent.Position - targetPart.Position).Magnitude < 15 then
-                                        prompt = obj
-                                        break
+                        -- CARI TOMBOL REVIVE DI LAYAR
+                        for _, gui in ipairs(CoreGui:GetChildren()) do
+                            if gui:IsA("ScreenGui") or gui:IsA("Folder") then
+                                for _, obj in ipairs(gui:GetDescendants()) do
+                                    if obj:IsA("TextButton") or obj:IsA("ImageButton") then
+                                        local n = obj.Name:lower()
+                                        if n:find("revive") or n:find("rescue") or n:find("plus") or n == "+" then
+                                            if obj.Visible then
+                                                pcall(function()
+                                                    if obj.Activate then obj:Activate() end
+                                                    obj.MouseButton1Click:Fire()
+                                                end)
+                                            end
+                                        end
                                     end
                                 end
                             end
                         end
-
-                        if prompt then
-                            pcall(function() fireproximityprompt(prompt) end)
-                            if prompt.HoldDuration > 0 then
-                                local holdEnd = tick() + prompt.HoldDuration
-                                while tick() < holdEnd do
-                                    hrp.CFrame = targetPart.CFrame * offset
-                                    task.wait(0.05)
-                                end
-                                pcall(function() fireproximityprompt(prompt) end)
-                            else
-                                task.wait(0.2)
-                            end
-                        else
-                            task.wait(0.3)
-                        end
                         
-                        task.wait(0.2)
+                        task.wait(0.5)
+                        
                         if State.farm then
                             hrp.CFrame = CFrame.new(Vector3.new(0, 1500, 0) + Vector3.new(0, 4, 0))
-                        else
-                            hrp.CFrame = CFrame.new(getSafeGroundSpot())
+                            hrp.AssemblyLinearVelocity = Vector3.zero
                         end
-                        hrp.AssemblyLinearVelocity = Vector3.zero
                         
                         task.wait(0.5)
                         isReviving = false
