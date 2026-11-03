@@ -2,9 +2,9 @@ local Players           = game:GetService("Players")
 local Workspace         = game:GetService("Workspace")
 local CoreGui           = game:GetService("CoreGui")
 local RunService        = game:GetService("RunService")
-local TweenService      = game:GetService("TweenService")
 
 local LP = Players.LocalPlayer
+local SelectedPlayer = nil
 
 if CoreGui:FindFirstChild("EvadePanel_v1") then
     CoreGui.EvadePanel_v1:Destroy()
@@ -32,180 +32,140 @@ end
 
 local Gui = Instance.new("ScreenGui"); Gui.Name = "EvadePanel_v1"; Gui.ResetOnSpawn = false; Gui.IgnoreGuiInset = true; Gui.Parent = CoreGui
 
--- ==========================================
--- 1. PANEL UTAMA
--- ==========================================
+-- PANEL UTAMA
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 500, 0, 400); Main.Position = UDim2.new(0.5, -250, 0.5, -200)
+Main.Size = UDim2.new(0, 480, 0, 400); Main.Position = UDim2.new(0.5, -240, 0.5, -200)
 Main.BackgroundColor3 = Theme.bg; Main.BorderSizePixel = 0; Main.Active = true; Main.Draggable = true; Main.ClipsDescendants = true; Main.Parent = Gui
 corner(Main, 8); stroke(Main, Theme.stroke, 2)
 
+-- TOMBOL FLOATING "K"
+local FloatLogo = Instance.new("TextButton")
+FloatLogo.Size = UDim2.new(0, 50, 0, 50); FloatLogo.Position = UDim2.new(0, 20, 0.5, -25)
+FloatLogo.BackgroundColor3 = Theme.bg; FloatLogo.BorderSizePixel = 0; FloatLogo.Text = "K"
+FloatLogo.TextColor3 = Theme.accent; FloatLogo.Font = FontBold; FloatLogo.TextSize = 24
+FloatLogo.Visible = false; FloatLogo.Active = true; FloatLogo.Draggable = true; FloatLogo.Parent = Gui
+corner(FloatLogo, 25); stroke(FloatLogo, Theme.accent, 2)
+
+FloatLogo.MouseButton1Click:Connect(function() FloatLogo.Visible = false; Main.Visible = true end)
+
+-- HEADER
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 40); Header.BackgroundColor3 = Theme.bg_secondary; Header.Parent = Main
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Font = FontBold; Title.TextSize = 16; Title.TextColor3 = Theme.accent; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Text = " > CLIENT OBJECT INJECTOR"; Title.Parent = Header; pad(Title, 14, 0, 0, 0)
+Title.Size = UDim2.new(1, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Font = FontBold; Title.TextSize = 16; Title.TextColor3 = Theme.accent; Title.TextXAlignment = Enum.TextXAlignment.Left; Title.Text = " > NETWORK REPLICATOR"; Title.Parent = Header; pad(Title, 14, 0, 0, 0)
 
--- ==========================================
--- 2. TOMBOL FLOATING "K"
--- ==========================================
-local FloatLogo = Instance.new("TextButton")
-FloatLogo.Size = UDim2.new(0, 50, 0, 50)
-FloatLogo.Position = UDim2.new(0, 20, 0.5, -25)
-FloatLogo.BackgroundColor3 = Theme.bg
-FloatLogo.BorderSizePixel = 0
-FloatLogo.Text = "K"
-FloatLogo.TextColor3 = Theme.accent
-FloatLogo.Font = FontBold
-FloatLogo.TextSize = 24
-FloatLogo.Visible = false
-FloatLogo.Active = true
-FloatLogo.Draggable = true
-FloatLogo.Parent = Gui
-corner(FloatLogo, 25)
-stroke(FloatLogo, Theme.accent, 2)
-
--- ==========================================
--- 3. FUNGSI MINIMIZE / MAXIMIZE
--- ==========================================
 local function iconBtn(parent, x, txt, col, cb)
     local b = Instance.new("TextButton"); b.Size = UDim2.new(0, 24, 0, 24); b.Position = UDim2.new(1, x, 0.5, -12); b.BackgroundColor3 = Theme.bg_tertiary; b.Text = txt; b.TextColor3 = col; b.Font = FontBold; b.TextSize = 14; b.Parent = parent; corner(b, 4); b.MouseButton1Click:Connect(cb)
 end
+iconBtn(Header, -70, "—", Theme.text_dim, function() Main.Visible = false; FloatLogo.Visible = true end)
+iconBtn(Header, -40, "✕", Theme.red, function() Gui:Destroy() end)
 
--- Tombol Minimize (—)
-iconBtn(Header, -70, "—", Theme.text_dim, function() 
-    Main.Visible = false 
-    FloatLogo.Visible = true 
-end)
-
--- Tombol Close (X)
-iconBtn(Header, -40, "✕", Theme.red, function() 
-    Gui:Destroy() 
-end)
-
--- Pas tombol K diklik, panel balik muncul
-FloatLogo.MouseButton1Click:Connect(function()
-    FloatLogo.Visible = false
-    Main.Visible = true
-end)
-
--- ==========================================
--- 4. KONTEN & FITUR
--- ==========================================
+-- KONTEN
 local Content = Instance.new("Frame")
 Content.Size = UDim2.new(1, -20, 1, -60); Content.Position = UDim2.new(0, 10, 0, 50); Content.BackgroundTransparency = 1; Content.Parent = Main
-local ListLayout = Instance.new("UIListLayout"); ListLayout.Padding = UDim.new(0, 8); ListLayout.Parent = Content
+local ListLayout = Instance.new("UIListLayout"); ListLayout.Padding = UDim.new(0, 6); ListLayout.Parent = Content
 
+-- INFO TARGET
+local TargetInfo = Instance.new("TextLabel")
+TargetInfo.Size = UDim2.new(1, 0, 0, 30); TargetInfo.BackgroundColor3 = Theme.bg_secondary; TargetInfo.Text = " Target: BELUM DIPILIH"
+TargetInfo.TextColor3 = Theme.red; TargetInfo.Font = FontBold; TargetInfo.TextXAlignment = Enum.TextXAlignment.Left; TargetInfo.Parent = Content
+corner(TargetInfo, 4); pad(TargetInfo, 10, 0, 0, 0)
+
+-- LIST PLAYER
+local PlayerList = Instance.new("ScrollingFrame")
+PlayerList.Size = UDim2.new(1, 0, 0, 100); PlayerList.BackgroundColor3 = Theme.bg_tertiary; PlayerList.BorderSizePixel = 0; PlayerList.ScrollBarThickness = 4
+PlayerList.Parent = Content; corner(PlayerList, 4)
+
+local function refreshList()
+    for _, v in ipairs(PlayerList:GetChildren()) do
+        if v:IsA("TextButton") then v:Destroy() end
+    end
+    
+    local yPos = 0
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LP then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -6, 0, 28); btn.Position = UDim2.new(0, 3, 0, yPos)
+            btn.BackgroundColor3 = (p == SelectedPlayer) and Theme.accent or Theme.bg_secondary
+            btn.Text = " " .. p.Name; btn.TextColor3 = Theme.text; btn.Font = Font; btn.TextSize = 13; btn.TextXAlignment = Enum.TextXAlignment.Left
+            btn.Parent = PlayerList; corner(btn, 2)
+            
+            btn.MouseButton1Click:Connect(function()
+                SelectedPlayer = p
+                TargetInfo.Text = " Target: " .. p.Name
+                TargetInfo.TextColor3 = Theme.accent
+                refreshList()
+            end)
+            yPos = yPos + 30
+        end
+    end
+    PlayerList.CanvasSize = UDim2.new(0, 0, 0, yPos)
+end
+
+task.spawn(function()
+    while Gui.Parent do
+        refreshList()
+        task.wait(3)
+    end
+end)
+
+-- FUNGSI EKSEKUSI
 local function createActionBtn(parent, text, col, callback)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 0, 42); b.BackgroundColor3 = Theme.bg_secondary; b.Text = text; b.TextColor3 = col; b.Font = FontBold; b.TextSize = 14; b.Parent = parent; corner(b, 4); stroke(b, Theme.stroke, 1)
+    b.Size = UDim2.new(1, 0, 0, 40); b.BackgroundColor3 = Theme.bg_secondary; b.Text = text; b.TextColor3 = col; b.Font = FontBold; b.TextSize = 14; b.Parent = parent; corner(b, 4); stroke(b, Theme.stroke, 1)
     b.MouseButton1Click:Connect(callback)
 end
 
-local function getPos()
-    local char = LP.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        return char.HumanoidRootPart.Position
-    end
-    return Vector3.new(0, 0, 0)
-end
-
--- FITUR 1: ORBITAL STRIKE
-createActionBtn(Content, "[ SUMMON ORBITAL STRIKE ]", Color3.fromRGB(0, 255, 255), function()
-    local pos = getPos()
-    for i = 1, 5 do
-        local beam = Instance.new("Part")
-        beam.Size = Vector3.new(10, 500, 10)
-        beam.Position = pos + Vector3.new(math.random(-20, 20), 250, math.random(-20, 20))
-        beam.Anchored = true; beam.CanCollide = false; beam.Material = Enum.Material.Neon; beam.Color = Color3.fromRGB(0, 255, 255); beam.Transparency = 0.3
-        beam.Parent = Workspace
-        
-        local pointLight = Instance.new("PointLight", beam)
-        pointLight.Brightness = 5; pointLight.Range = 50; pointLight.Color = Color3.fromRGB(0, 255, 255)
-        
-        TweenService:Create(beam, TweenInfo.new(2), {Size = Vector3.new(0, 500, 0), Transparency = 1}):Play()
-        task.delay(2, function() beam:Destroy() end)
-    end
-end)
-
--- FITUR 2: FAKE GLOBAL MESSAGE
-createActionBtn(Content, "[ BROADCAST GLOBAL MESSAGE ]", Color3.fromRGB(255, 0, 0), function()
-    local part = Instance.new("Part")
-    part.Size = Vector3.new(200, 50, 2); part.Position = getPos() + Vector3.new(0, 100, 0)
-    part.Anchored = true; part.CanCollide = false; part.Transparency = 1; part.Parent = Workspace
+local function takeOwnershipAndModify(target, mode)
+    if not target or not target.Character then return end
+    local char = target.Character
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
     
-    local sg = Instance.new("SurfaceGui", part)
-    sg.Face = Enum.NormalId.Front
-    local txt = Instance.new("TextLabel", sg)
-    txt.Size = UDim2.new(1, 0, 1, 0); txt.BackgroundColor3 = Color3.fromRGB(0, 0, 0); txt.BackgroundTransparency = 0.5
-    txt.Text = "SYSTEM: ALL PLAYERS HAVE BEEN HACKED."; txt.TextColor3 = Color3.fromRGB(255, 0, 0); txt.TextStrokeTransparency = 0; txt.Font = Enum.Font.Code; txt.TextSize = 50
+    -- Coba ambil Network Ownership
+    local success = pcall(function()
+        hrp:SetNetworkOwner(LP)
+    end)
     
-    task.delay(8, function() part:Destroy() end)
-end)
-
--- FITUR 3: BLACK HOLE
-createActionBtn(Content, "[ SUMMON BLACK HOLE ]", Color3.fromRGB(150, 0, 255), function()
-    local pos = getPos() + Vector3.new(0, 20, 0)
-    local hole = Instance.new("Part")
-    hole.Size = Vector3.new(50, 50, 50); hole.Shape = Enum.PartType.Ball; hole.Position = pos
-    hole.Anchored = true; hole.CanCollide = false; hole.Material = Enum.Material.Neon; hole.Color = Color3.fromRGB(20, 0, 30); hole.Parent = Workspace
-    
-    local sg = Instance.new("SurfaceGui", hole)
-    local txt = Instance.new("TextLabel", sg)
-    txt.Size = UDim2.new(1, 0, 1, 0); txt.BackgroundTransparency = 1; txt.Text = "SINGULARITY"; txt.TextColor3 = Color3.fromRGB(200, 0, 255); txt.TextScaled = true; txt.Font = Enum.Font.Code
-    
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        for _, obj in ipairs(Workspace:GetChildren()) do
-            if obj:IsA("BasePart") and obj ~= hole and not obj.Anchored then
-                local dist = (obj.Position - hole.Position).Magnitude
-                if dist < 100 then
-                    obj.CFrame = obj.CFrame + (hole.CFrame.Position - obj.Position).Unit * 2
+    if success then
+        if mode == "TITAN" then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.Size = part.Size * 2.5
+                    part.CustomPhysicalProperties = PhysicalProperties.new(0.01, 0.3, 0.5, 1, 1)
                 end
             end
+        elseif mode == "JAIL" then
+            local jail_anchor = Instance.new("Part")
+            jail_anchor.Anchored = true; jail_anchor.Size = Vector3.new(1, 1, 1); jail_anchor.Transparency = 1; jail_anchor.CFrame = hrp.CFrame; jail_anchor.Parent = Workspace
+            
+            local weld = Instance.new("WeldConstraint"); weld.Part0 = hrp; weld.Part1 = jail_anchor; weld.Parent = hrp
+            
+            for i = 1, 4 do
+                local wall = Instance.new("Part")
+                wall.Size = Vector3.new(15, 20, 1); wall.Anchored = false; wall.Transparency = 0.3
+                wall.Color = Color3.fromRGB(100, 100, 100); wall.Material = Enum.Material.ForceField; wall.Parent = Workspace
+                
+                local wall_weld = Instance.new("WeldConstraint"); wall_weld.Part0 = jail_anchor; wall_weld.Part1 = wall; wall_weld.Parent = wall
+                
+                if i == 1 then wall.CFrame = jail_anchor.CFrame * CFrame.new(0, 0, -7) 
+                elseif i == 2 then wall.CFrame = jail_anchor.CFrame * CFrame.new(0, 0, 7) 
+                elseif i == 3 then wall.CFrame = jail_anchor.CFrame * CFrame.new(-7, 0, 0) 
+                elseif i == 4 then wall.CFrame = jail_anchor.CFrame * CFrame.new(7, 0, 0) end
+            end
         end
-    end)
-    
-    task.delay(10, function() conn:Disconnect(); hole:Destroy() end)
-end)
-
--- FITUR 4: PET CUBE
-createActionBtn(Content, "[ SPAWN SPINNING PET ]", Color3.fromRGB(255, 200, 0), function()
-    local char = LP.Character
-    if not char then return end
-    
-    local cube = Instance.new("Part")
-    cube.Size = Vector3.new(4, 4, 4); cube.Material = Enum.Material.Neon; cube.Color = Color3.fromRGB(255, 200, 0); cube.CanCollide = false; cube.Anchored = true; cube.Parent = Workspace
-    
-    local angle = 0
-    local conn
-    conn = RunService.Heartbeat:Connect(function()
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            conn:Disconnect(); cube:Destroy(); return
-        end
-        angle = angle + 0.1
-        local hrp = char.HumanoidRootPart
-        cube.CFrame = CFrame.new(hrp.Position + Vector3.new(math.cos(angle)*8, 5, math.sin(angle)*8))
-    end)
-    
-    task.delay(20, function() conn:Disconnect(); cube:Destroy() end)
-end)
-
--- FITUR 5: EARTHQUAKE
-createActionBtn(Content, "[ TRIGGER EARTHQUAKE ]", Color3.fromRGB(255, 100, 0), function()
-    local cam = Workspace.CurrentCamera
-    local origType = cam.CameraType
-    cam.CameraType = Enum.CameraType.Scriptable
-    
-    for i = 1, 50 do
-        local char = LP.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local hrp = char.HumanoidRootPart
-            cam.CFrame = CFrame.new(hrp.Position + Vector3.new(math.random(-2,2), 10, math.random(-2,2)), hrp.Position)
-        end
-        task.wait(0.05)
+    else
+        warn("[Evade] Gagal ambil Network Ownership. Server menolak.")
     end
-    
-    cam.CameraType = origType
+end
+
+-- BUTTON AKSI
+createActionBtn(Content, "[ EXECUTE: TITAN ]", Color3.fromRGB(0, 255, 255), function()
+    if SelectedPlayer then takeOwnershipAndModify(SelectedPlayer, "TITAN") end
 end)
 
-print("[@alpin67] Client Injector Loaded.")
+createActionBtn(Content, "[ EXECUTE: JAIL ]", Color3.fromRGB(255, 150, 0), function()
+    if SelectedPlayer then takeOwnershipAndModify(SelectedPlayer, "JAIL") end
+end)
+
+print("[@alpin67] Full Network Replicator Loaded.")
