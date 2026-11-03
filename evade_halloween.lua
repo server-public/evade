@@ -6,11 +6,11 @@ local LP = Players.LocalPlayer
 local State = _G.ev and _G.ev.State or {}
 
 local isSweeping = false
-local lastPos = nil
+local lastWispPos = nil
 
 -- 1. Sapu Jagat Wisp (Auto Teleport & Collect)
 task.spawn(function()
-    while task.wait(0.2) do
+    while task.wait(0.5) do
         if not State.candy or isSweeping then continue end
         
         local char = LP.Character
@@ -24,9 +24,7 @@ task.spawn(function()
                 local n = d.Name:lower()
                 local pName = d.Parent and d.Parent.Name:lower() or ""
                 
-                -- Cari nama Wisp / Event
                 if n:find("wisp") or pName:find("wisp") or n:find("event") or pName:find("halloween") then
-                    -- Skip kalo itu bagian dari karakter player
                     local model = d:FindFirstAncestorOfClass("Model")
                     if not (model and Players:GetPlayerFromCharacter(model)) then
                         table.insert(targets, d)
@@ -35,11 +33,11 @@ task.spawn(function()
             end
         end
 
+        -- Kalau ada Wisp, mulai sapu
         if #targets > 0 then
             isSweeping = true
-            lastPos = hrp.Position -- Simpen posisi awal lo
 
-            -- Kumpulin RemoteEvent buat nembak server
+            -- Kumpulin RemoteEvent
             local remotes = {}
             for _, r in ipairs(ReplicatedStorage:GetDescendants()) do
                 if r:IsA("RemoteEvent") then
@@ -53,24 +51,27 @@ task.spawn(function()
             -- Mulai teleport ke tiap Wisp
             for _, target in ipairs(targets) do
                 if not State.candy then break end
+                if not target.Parent then continue end -- Skip kalau Wisp udah hilang
                 
+                -- Teleport ke Wisp
                 hrp.CFrame = target.CFrame
                 hrp.AssemblyLinearVelocity = Vector3.zero
-                task.wait(0.03) -- Delay super singkat
+                lastWispPos = target.CFrame -- Simpen posisi Wisp terakhir
+                task.wait(0.05) -- Jeda ambil nafas
 
-                -- A. Pencet ProximityPrompt (kalau ada)
+                -- Pencet ProximityPrompt (kalau ada)
                 local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if prompt then
                     pcall(function() fireproximityprompt(prompt) end)
                 end
 
-                -- B. Sentuh fisik
+                -- Sentuh fisik
                 if firetouchinterest then
                     pcall(function() firetouchinterest(target, hrp, 0) end)
                     pcall(function() firetouchinterest(target, hrp, 1) end)
                 end
 
-                -- C. Tembak RemoteEvent (Bypass UI)
+                -- Tembak RemoteEvent
                 for _, remote in ipairs(remotes) do
                     pcall(function()
                         remote:FireServer(target)
@@ -79,17 +80,24 @@ task.spawn(function()
                     end)
                 end
                 
-                task.wait(0.05) -- Jeda sebelum ke Wisp berikutnya
+                task.wait(0.1) -- Jeda antar Wisp biar gak dianggap spam bot
             end
 
-            -- Balik ke posisi awal atau Basecamp
+            -- Selesai nyapu, tentuin mau ngapain
+            task.wait(0.2) -- Tunggu server update
             if State.farm then
-                hrp.CFrame = CFrame.new(0, 1500, 0)
+                -- Balik ke Awan (Basecamp)
+                hrp.CFrame = CFrame.new(0, 1504, 0)
             else
-                hrp.CFrame = CFrame.new(lastPos) -- Balik ke tempat lo berdiri sebelumnya
+                -- DIEM DI TEMPAT WISP TERAKHIR
+                if lastWispPos then
+                    hrp.CFrame = lastWispPos
+                end
             end
             hrp.AssemblyLinearVelocity = Vector3.zero
             
+            -- Jeda 2 detik sebelum scan lagi (biar gak error "Already claimed")
+            task.wait(2)
             isSweeping = false
         end
     end
@@ -120,6 +128,7 @@ RunService.Heartbeat:Connect(function()
         basePart = p
     end
 
+    -- Cuma kunci posisi kalau lagi GAK nyedot Wisp
     if not isSweeping then
         local char = LP.Character
         if char then
